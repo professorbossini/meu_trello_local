@@ -404,6 +404,8 @@ class _DraggableCardState extends State<DraggableCard> with BoardDragCallbacks {
         const inset = -DropIndicator.thickness / 2;
         return Stack(
           clipBehavior: Clip.none,
+          // Let the card fill the column width.
+          fit: StackFit.passthrough,
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(

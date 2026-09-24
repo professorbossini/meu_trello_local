@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:minhas_tarefas/src/board/models.dart';
+import 'package:minhas_tarefas/src/ui/card_tile.dart';
 import 'package:minhas_tarefas/src/ui/list_column.dart';
 
 import 'helpers.dart';
@@ -117,6 +118,15 @@ void main() {
       'A fazer',
       'Backlog',
     ]);
+  });
+
+  testWidgets('cards span the full width of their list', (tester) async {
+    await pumpBoard(tester, fourLists(), size: const Size(1600, 900));
+
+    final column = listRect(tester, 'Backlog');
+    final card = tester.getRect(find.byType(CardTile).first);
+    // Column padding (10) plus its border (1.5) on each side.
+    expect(card.width, closeTo(column.width - 23, 0.5));
   });
 
   testWidgets('the card dialog fits a narrow window', (tester) async {
