@@ -1,13 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'board/board_controller.dart';
 import 'ui/board_page.dart';
 import 'ui/drag_and_drop.dart';
 
 class MeuTrelloApp extends StatefulWidget {
-  const MeuTrelloApp({super.key, required this.controller});
+  const MeuTrelloApp({
+    super.key,
+    required this.controller,
+    this.onHide,
+    this.onQuit,
+  });
 
   final BoardController controller;
+
+  /// Hides the window into the tray (Ctrl+W).
+  final VoidCallback? onHide;
+
+  /// Quits the application (Ctrl+Q).
+  final VoidCallback? onQuit;
 
   @override
   State<MeuTrelloApp> createState() => _MeuTrelloAppState();
@@ -34,8 +46,21 @@ class _MeuTrelloAppState extends State<MeuTrelloApp> {
       darkTheme: ThemeData(colorSchemeSeed: _seed, brightness: Brightness.dark),
       // Above the navigator so drag feedback painted in its overlay can
       // reach the scope too.
-      builder: (context, child) =>
-          BoardDragScope(activity: _dragActivity, child: child!),
+      builder: (context, child) => CallbackShortcuts(
+        bindings: {
+          if (widget.onHide case final onHide?)
+            const SingleActivator(LogicalKeyboardKey.keyW, control: true):
+                onHide,
+          if (widget.onQuit case final onQuit?)
+            const SingleActivator(LogicalKeyboardKey.keyQ, control: true):
+                onQuit,
+        },
+        // Keeps the shortcuts working while no text field has focus.
+        child: Focus(
+          autofocus: true,
+          child: BoardDragScope(activity: _dragActivity, child: child!),
+        ),
+      ),
       home: BoardPage(controller: widget.controller),
     );
   }

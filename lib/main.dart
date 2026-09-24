@@ -1,14 +1,25 @@
 import 'dart:io';
 
+import 'package:dbus/dbus.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'src/app.dart';
 import 'src/board/board_controller.dart';
 import 'src/board/board_repository.dart';
+import 'src/desktop/desktop_shell.dart';
+import 'src/desktop/single_instance.dart';
 
-Future<void> main() async {
+/// Pass `--hidden` to start straight into the tray, e.g. on login.
+Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  final dbus = DBusClient.session();
+  DesktopShell? shell;
+  if (!await _claimSingleInstance(dbus, onActivate: () => shell?.show())) {
+    await dbus.close();
+    exit(0);
+  }
 
   final dataDir = await getApplicationSupportDirectory();
   final controller = BoardController(
@@ -16,5 +27,27 @@ Future<void> main() async {
   );
   await controller.load();
 
-  runApp(MeuTrelloApp(controller: controller));
+  shell = DesktopShell(client: dbus, beforeQuit: controller.flush);
+  await shell.start(startHidden: args.contains('--hidden'));
+
+  runApp(
+    MeuTrelloApp(
+      controller: controller,
+      onHide: shell.hide,
+      onQuit: shell.quit,
+    ),
+  );
+}
+
+Future<bool> _claimSingleInstance(
+  DBusClient dbus, {
+  required VoidCallback onActivate,
+}) async {
+  try {
+    return await SingleInstance.claim(dbus, onActivate: onActivate);
+  } on Object catch (error) {
+    // Without a session bus there is nothing to coordinate with; just run.
+    debugPrint('Single instance check unavailable: $error');
+    return true;
+  }
 }
