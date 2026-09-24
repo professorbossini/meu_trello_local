@@ -172,6 +172,35 @@ void main() {
     });
   });
 
+  test('checkable menu items expose their toggle state', () async {
+    await startWatcher();
+    final item = StatusNotifierItem(
+      client: app,
+      id: 'test-app',
+      title: 'Test App',
+      onActivate: () {},
+      menu: [TrayMenuItem(label: 'Autostart', checked: true, onClicked: () {})],
+    );
+    await item.start();
+
+    final properties =
+        await DBusRemoteObject(
+          host,
+          name: item.busName,
+          path: DBusObjectPath('/MenuBar'),
+        ).callMethod('com.canonical.dbusmenu', 'GetGroupProperties', [
+          DBusArray.int32([1]),
+          DBusArray.string(const []),
+        ]);
+    final props = properties.values.first
+        .asArray()
+        .first
+        .asStruct()[1]
+        .asStringVariantDict();
+    expect(props['toggle-type']!.asString(), 'checkmark');
+    expect(props['toggle-state']!.asInt32(), 1);
+  });
+
   test('app icon has transparent corners and an opaque body', () {
     const size = 32;
     final rgba = AppIcon.rgba(size);

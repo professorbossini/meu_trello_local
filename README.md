@@ -21,11 +21,15 @@ Everything stays on your machine, in a single JSON file.
 - **System tray**
   - single click on the icon: show the window, or hide it when it is
     already in front
-  - right click: menu with show/hide and *Sair* (quit)
+  - right click: menu with show/hide, *Iniciar com o sistema* and *Sair*
+    (quit)
   - minimizing or closing the window hides it into the tray
 - **Single instance**: launching the app again just brings the running
   window forward.
-- **Start on login**: optional autostart that starts hidden in the tray.
+- **Starts with the system**: on login the app starts hidden in the tray.
+  This is on by default and can be turned off with *Iniciar com o sistema*
+  in the tray menu; the choice is remembered.
+- **Responsive**: columns and dialogs adapt down to narrow windows.
 - Follows the system light/dark theme.
 
 ### Keyboard shortcuts
@@ -65,7 +69,6 @@ flutter run -d linux
 
 ```sh
 scripts/install.sh              # build, install and add to the app menu
-scripts/install.sh --autostart  # ...and start hidden in the tray on login
 ```
 
 The app is installed to `~/.local/opt/minhas_tarefas`, with a
@@ -104,6 +107,7 @@ lib/
     │   └── ...
     └── desktop/               Linux desktop integration
         ├── desktop_shell.dart window <-> tray behavior
+        ├── autostart.dart     start hidden in the tray on login
         ├── single_instance.dart
         └── tray/
             ├── status_notifier_item.dart  tray icon over D-Bus

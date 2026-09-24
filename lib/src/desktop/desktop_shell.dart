@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'autostart.dart';
 import 'tray/dbus_menu.dart';
 import 'tray/status_notifier_item.dart';
 
@@ -19,13 +20,19 @@ import 'tray/status_notifier_item.dart';
 /// When the desktop has no tray host, minimize and close keep their usual
 /// behavior so the window can never become unreachable.
 class DesktopShell with WindowListener {
-  DesktopShell({required DBusClient client, required this.beforeQuit})
-    : _client = client;
+  DesktopShell({
+    required DBusClient client,
+    required this.autostart,
+    required this.beforeQuit,
+  }) : _client = client;
 
   static const title = 'Minhas Tarefas';
   static const _windowChannel = MethodChannel('desktop/window');
 
   final DBusClient _client;
+
+  /// Backs the "start with the system" toggle in the tray menu.
+  final Autostart autostart;
 
   /// Runs before the process exits, e.g. to flush unsaved changes.
   final Future<void> Function() beforeQuit;
@@ -127,6 +134,17 @@ class DesktopShell with WindowListener {
         ? TrayMenuItem(label: 'Ocultar quadro', onClicked: hide)
         : TrayMenuItem(label: 'Mostrar quadro', onClicked: show),
     const TrayMenuItem.separator(),
+    TrayMenuItem(
+      label: 'Iniciar com o sistema',
+      checked: autostart.enabled,
+      onClicked: _toggleAutostart,
+    ),
+    const TrayMenuItem.separator(),
     TrayMenuItem(label: 'Sair', onClicked: quit),
   ];
+
+  Future<void> _toggleAutostart() async {
+    await autostart.setEnabled(!autostart.enabled);
+    await _tray?.setMenu(_menu());
+  }
 }

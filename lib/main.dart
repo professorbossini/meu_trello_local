@@ -7,10 +7,12 @@ import 'package:path_provider/path_provider.dart';
 import 'src/app.dart';
 import 'src/board/board_controller.dart';
 import 'src/board/board_repository.dart';
+import 'src/desktop/autostart.dart';
 import 'src/desktop/desktop_shell.dart';
 import 'src/desktop/single_instance.dart';
 
-/// Pass `--hidden` to start straight into the tray, e.g. on login.
+/// Pass `--hidden` to start straight into the tray; the autostart entry
+/// does so on login.
 Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -27,7 +29,21 @@ Future<void> main(List<String> args) async {
   );
   await controller.load();
 
-  shell = DesktopShell(client: dbus, beforeQuit: controller.flush);
+  final autostart = Autostart.forCurrentUser(
+    appId: 'io.github.professorbossini.minhas_tarefas',
+    dataDir: dataDir,
+  );
+  try {
+    await autostart.applyDefault();
+  } on FileSystemException catch (error) {
+    debugPrint('Could not set up autostart: $error');
+  }
+
+  shell = DesktopShell(
+    client: dbus,
+    autostart: autostart,
+    beforeQuit: controller.flush,
+  );
   await shell.start(startHidden: args.contains('--hidden'));
 
   runApp(

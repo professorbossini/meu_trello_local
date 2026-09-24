@@ -4,17 +4,24 @@ import 'package:flutter/foundation.dart';
 /// An entry of the tray context menu.
 @immutable
 class TrayMenuItem {
-  const TrayMenuItem({required this.label, required this.onClicked})
-    : separator = false;
+  const TrayMenuItem({
+    required this.label,
+    required this.onClicked,
+    this.checked,
+  }) : separator = false;
 
   const TrayMenuItem.separator()
     : label = '',
       onClicked = null,
+      checked = null,
       separator = true;
 
   final String label;
   final VoidCallback? onClicked;
   final bool separator;
+
+  /// Shows a check mark reflecting this value; `null` for plain items.
+  final bool? checked;
 }
 
 /// Exports a flat menu over D-Bus using the `com.canonical.dbusmenu`
@@ -48,6 +55,10 @@ class DBusMenu extends DBusObject {
       'label': DBusString(item.label),
       'enabled': const DBusBoolean(true),
       'visible': const DBusBoolean(true),
+      if (item.checked case final checked?) ...{
+        'toggle-type': const DBusString('checkmark'),
+        'toggle-state': DBusInt32(checked ? 1 : 0),
+      },
     };
   }
 
