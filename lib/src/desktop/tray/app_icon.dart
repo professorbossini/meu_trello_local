@@ -1,23 +1,22 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-/// Procedurally rendered application icon: a rounded blue tile holding three
-/// white kanban columns of different heights.
+/// Procedurally rendered application icon: a warm gradient tile holding a
+/// short checklist, two tasks ticked off and one still open.
 ///
 /// Drawing it in code keeps a single source of truth for every size the
 /// tray and the desktop entry need, with no binary assets to keep in sync.
 /// This file is pure Dart on purpose so `tool/generate_icons.dart` can reuse
 /// it outside Flutter.
 abstract final class AppIcon {
-  static const _topColor = (0x1E, 0x90, 0xE0);
-  static const _bottomColor = (0x00, 0x5F, 0xA3);
+  static const _topColor = (0xFF, 0x8A, 0x3D);
+  static const _bottomColor = (0xE0, 0x2F, 0x6B);
+  static const _white = (0xFF, 0xFF, 0xFF);
 
-  /// Columns as (left, top, right, bottom) in unit coordinates.
-  static const _columns = [
-    (0.20, 0.22, 0.38, 0.78),
-    (0.41, 0.22, 0.59, 0.56),
-    (0.62, 0.22, 0.80, 0.68),
-  ];
+  /// Vertical centers of the checklist rows, in unit coordinates.
+  static const _rows = [0.30, 0.50, 0.70];
+  static const _checkboxX = 0.30;
+  static const _checkboxRadius = 0.085;
 
   /// Samples per axis used for anti-aliasing.
   static const _supersampling = 4;
@@ -28,36 +27,25 @@ abstract final class AppIcon {
     const n = _supersampling;
     for (var y = 0; y < size; y++) {
       for (var x = 0; x < size; x++) {
-        var tile = 0;
-        var column = 0;
+        // Premultiplied accumulators.
+        var r = 0.0, g = 0.0, b = 0.0, a = 0.0;
         for (var sy = 0; sy < n; sy++) {
           for (var sx = 0; sx < n; sx++) {
             final u = (x + (sx + 0.5) / n) / size;
             final v = (y + (sy + 0.5) / n) / size;
-            if (_insideRoundedRect(u, v, (0, 0, 1, 1), 0.22)) {
-              tile++;
-              if (_columns.any((c) => _insideRoundedRect(u, v, c, 0.045))) {
-                column++;
-              }
-            }
+            final (sr, sg, sb, sa) = _sample(u, v);
+            r += sr * sa;
+            g += sg * sa;
+            b += sb * sa;
+            a += sa;
           }
         }
-        if (tile == 0) continue;
-
-        // Vertical gradient on the tile, blended towards white by how much
-        // of the pixel the columns cover.
-        final t = y / math.max(1, size - 1);
-        final white = column / tile;
-        int channel(int top, int bottom) {
-          final base = top + (bottom - top) * t;
-          return (base + (255 - base) * white).round();
-        }
-
+        if (a == 0) continue;
         final offset = (y * size + x) * 4;
-        pixels[offset] = channel(_topColor.$1, _bottomColor.$1);
-        pixels[offset + 1] = channel(_topColor.$2, _bottomColor.$2);
-        pixels[offset + 2] = channel(_topColor.$3, _bottomColor.$3);
-        pixels[offset + 3] = (255 * tile / (n * n)).round();
+        pixels[offset] = (r / a).round();
+        pixels[offset + 1] = (g / a).round();
+        pixels[offset + 2] = (b / a).round();
+        pixels[offset + 3] = (255 * a / (n * n)).round();
       }
     }
     return pixels;
@@ -77,18 +65,89 @@ abstract final class AppIcon {
     return argb;
   }
 
-  static bool _insideRoundedRect(
+  /// Color of the point (u, v), painting the layers back to front.
+  static (double, double, double, double) _sample(double u, double v) {
+    if (!_inRoundedRect(u, v, 0, 0, 1, 1, 0.22)) return (0, 0, 0, 0);
+
+    final tile = _gradient(v);
+    var color = tile;
+    void paint((int, int, int) paint, [double opacity = 1]) {
+      color = (
+        _mix(color.$1, paint.$1, opacity),
+        _mix(color.$2, paint.$2, opacity),
+        _mix(color.$3, paint.$3, opacity),
+      );
+    }
+
+    for (final (index, cy) in _rows.indexed) {
+      final done = index < _rows.length - 1;
+
+      // Task line, dimmed while the task is still open.
+      if (_inRoundedRect(u, v, 0.44, cy - 0.042, 0.78, cy + 0.042, 0.042)) {
+        paint(_white, done ? 1 : 0.6);
+      }
+
+      final distance = _distance(u, v, _checkboxX, cy);
+      if (done) {
+        // Filled checkbox with the tile color showing through as a tick.
+        if (distance <= _checkboxRadius) {
+          paint(_white);
+          final onTick =
+              _nearSegment(u, v, 0.255, cy + 0.002, 0.288, cy + 0.035, 0.018) ||
+              _nearSegment(u, v, 0.288, cy + 0.035, 0.345, cy - 0.030, 0.018);
+          if (onTick) paint(tile);
+        }
+      } else if (distance <= _checkboxRadius && distance >= 0.058) {
+        paint(_white, 0.85);
+      }
+    }
+
+    return (color.$1.toDouble(), color.$2.toDouble(), color.$3.toDouble(), 1);
+  }
+
+  static (int, int, int) _gradient(double t) => (
+    _mix(_topColor.$1, _bottomColor.$1, t),
+    _mix(_topColor.$2, _bottomColor.$2, t),
+    _mix(_topColor.$3, _bottomColor.$3, t),
+  );
+
+  static int _mix(int from, int to, double t) =>
+      (from + (to - from) * t).round();
+
+  static double _distance(double x0, double y0, double x1, double y1) =>
+      math.sqrt((x0 - x1) * (x0 - x1) + (y0 - y1) * (y0 - y1));
+
+  static bool _inRoundedRect(
     double x,
     double y,
-    (double, double, double, double) rect,
+    double left,
+    double top,
+    double right,
+    double bottom,
     double radius,
   ) {
-    final (left, top, right, bottom) = rect;
     if (x < left || x > right || y < top || y > bottom) return false;
     final cx = x.clamp(left + radius, right - radius);
     final cy = y.clamp(top + radius, bottom - radius);
-    final dx = x - cx;
-    final dy = y - cy;
-    return dx * dx + dy * dy <= radius * radius;
+    return _distance(x, y, cx, cy) <= radius;
+  }
+
+  /// Whether (x, y) lies within [halfWidth] of the segment (x0, y0)-(x1, y1).
+  static bool _nearSegment(
+    double x,
+    double y,
+    double x0,
+    double y0,
+    double x1,
+    double y1,
+    double halfWidth,
+  ) {
+    final dx = x1 - x0;
+    final dy = y1 - y0;
+    final t = (((x - x0) * dx + (y - y0) * dy) / (dx * dx + dy * dy)).clamp(
+      0.0,
+      1.0,
+    );
+    return _distance(x, y, x0 + t * dx, y0 + t * dy) <= halfWidth;
   }
 }
