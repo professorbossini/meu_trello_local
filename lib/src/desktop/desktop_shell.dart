@@ -22,7 +22,7 @@ class DesktopShell with WindowListener {
   DesktopShell({required DBusClient client, required this.beforeQuit})
     : _client = client;
 
-  static const title = 'Meu Trello Local';
+  static const title = 'Minhas Tarefas';
   static const _windowChannel = MethodChannel('desktop/window');
 
   final DBusClient _client;
@@ -41,7 +41,7 @@ class DesktopShell with WindowListener {
 
     final tray = StatusNotifierItem(
       client: _client,
-      id: 'meu_trello_local',
+      id: 'minhas_tarefas',
       title: title,
       menu: _menu(),
       onActivate: toggle,

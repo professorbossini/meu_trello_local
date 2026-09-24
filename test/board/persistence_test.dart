@@ -1,9 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:meu_trello_local/src/board/board_controller.dart';
-import 'package:meu_trello_local/src/board/board_repository.dart';
-import 'package:meu_trello_local/src/board/models.dart';
+import 'package:minhas_tarefas/src/board/board_controller.dart';
+import 'package:minhas_tarefas/src/board/board_repository.dart';
+import 'package:minhas_tarefas/src/board/models.dart';
 
 void main() {
   group('JsonFileBoardRepository', () {

@@ -1,7 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:meu_trello_local/src/board/board_controller.dart';
+import 'package:minhas_tarefas/src/board/board_controller.dart';
 
 import 'helpers.dart';
 

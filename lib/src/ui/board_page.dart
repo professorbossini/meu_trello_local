@@ -29,7 +29,7 @@ class _BoardPageState extends State<BoardPage> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Meu Trello Local'),
+        title: const Text('Minhas Tarefas'),
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         titleTextStyle: theme.textTheme.titleLarge?.copyWith(

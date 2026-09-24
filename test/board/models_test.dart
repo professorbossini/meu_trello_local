@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:meu_trello_local/src/board/models.dart';
+import 'package:minhas_tarefas/src/board/models.dart';
 
 TaskCard card(String id) =>
     TaskCard(id: id, title: 'Card $id', createdAt: DateTime.utc(2026));

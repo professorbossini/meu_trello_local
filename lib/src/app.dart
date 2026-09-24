@@ -5,8 +5,8 @@ import 'board/board_controller.dart';
 import 'ui/board_page.dart';
 import 'ui/drag_and_drop.dart';
 
-class MeuTrelloApp extends StatefulWidget {
-  const MeuTrelloApp({
+class MinhasTarefasApp extends StatefulWidget {
+  const MinhasTarefasApp({
     super.key,
     required this.controller,
     this.onHide,
@@ -22,10 +22,10 @@ class MeuTrelloApp extends StatefulWidget {
   final VoidCallback? onQuit;
 
   @override
-  State<MeuTrelloApp> createState() => _MeuTrelloAppState();
+  State<MinhasTarefasApp> createState() => _MinhasTarefasAppState();
 }
 
-class _MeuTrelloAppState extends State<MeuTrelloApp> {
+class _MinhasTarefasAppState extends State<MinhasTarefasApp> {
   static const _seed = Color(0xFF0079BF);
 
   final _dragActivity = BoardDragActivity();
@@ -39,7 +39,7 @@ class _MeuTrelloAppState extends State<MeuTrelloApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Meu Trello Local',
+      title: 'Minhas Tarefas',
       debugShowCheckedModeBanner: false,
       themeMode: ThemeMode.system,
       theme: ThemeData(colorSchemeSeed: _seed),

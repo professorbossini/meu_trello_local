@@ -3,9 +3,9 @@ import 'dart:io';
 
 import 'package:dbus/dbus.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:meu_trello_local/src/desktop/tray/app_icon.dart';
-import 'package:meu_trello_local/src/desktop/tray/dbus_menu.dart';
-import 'package:meu_trello_local/src/desktop/tray/status_notifier_item.dart';
+import 'package:minhas_tarefas/src/desktop/tray/app_icon.dart';
+import 'package:minhas_tarefas/src/desktop/tray/dbus_menu.dart';
+import 'package:minhas_tarefas/src/desktop/tray/status_notifier_item.dart';
 
 const watcherName = 'org.kde.StatusNotifierWatcher';
 

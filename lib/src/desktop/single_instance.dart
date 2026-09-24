@@ -9,11 +9,11 @@ import 'package:flutter/foundation.dart';
 class SingleInstance extends DBusObject {
   SingleInstance._(this._onActivate) : super(_path);
 
-  static const busName = 'io.github.professorbossini.MeuTrelloLocal';
+  static const busName = 'io.github.professorbossini.MinhasTarefas';
   static const interface = busName;
   static const activateMethod = 'Activate';
   static final _path = DBusObjectPath(
-    '/io/github/professorbossini/MeuTrelloLocal',
+    '/io/github/professorbossini/MinhasTarefas',
   );
 
   final VoidCallback _onActivate;

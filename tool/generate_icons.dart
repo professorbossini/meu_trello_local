@@ -4,9 +4,9 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:meu_trello_local/src/desktop/tray/app_icon.dart';
+import 'package:minhas_tarefas/src/desktop/tray/app_icon.dart';
 
-const appId = 'io.github.professorbossini.meu_trello_local';
+const appId = 'io.github.professorbossini.minhas_tarefas';
 
 void main() {
   _write('assets/icon/app_icon.png', 256);

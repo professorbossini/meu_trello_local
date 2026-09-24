@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:meu_trello_local/src/app.dart';
-import 'package:meu_trello_local/src/board/board_controller.dart';
-import 'package:meu_trello_local/src/board/board_repository.dart';
-import 'package:meu_trello_local/src/board/models.dart';
+import 'package:minhas_tarefas/src/app.dart';
+import 'package:minhas_tarefas/src/board/board_controller.dart';
+import 'package:minhas_tarefas/src/board/board_repository.dart';
+import 'package:minhas_tarefas/src/board/models.dart';
 
 /// Pumps the whole app on a desktop-sized window, backed by [board].
 Future<BoardController> pumpBoard(WidgetTester tester, Board board) async {
@@ -16,7 +16,7 @@ Future<BoardController> pumpBoard(WidgetTester tester, Board board) async {
     saveDelay: Duration.zero,
   );
   await controller.load();
-  await tester.pumpWidget(MeuTrelloApp(controller: controller));
+  await tester.pumpWidget(MinhasTarefasApp(controller: controller));
   return controller;
 }
 

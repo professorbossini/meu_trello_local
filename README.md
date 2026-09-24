@@ -1,6 +1,6 @@
-# Meu Trello Local
+# Minhas Tarefas
 
-A small, local-first, Trello-like kanban board for the Linux desktop, built
+A small, local-first kanban board for the Linux desktop, built
 with Flutter. It lives in the system tray: one click on the tray icon brings
 the board up, minimizing or closing the window tucks it back into the tray.
 
@@ -68,8 +68,8 @@ scripts/install.sh              # build, install and add to the app menu
 scripts/install.sh --autostart  # ...and start hidden in the tray on login
 ```
 
-The app is installed to `~/.local/opt/meu_trello_local`, with a
-`meu-trello-local` launcher in `~/.local/bin`. To remove it:
+The app is installed to `~/.local/opt/minhas_tarefas`, with a
+`minhas-tarefas` launcher in `~/.local/bin`. To remove it:
 
 ```sh
 scripts/uninstall.sh            # keeps your board
@@ -81,7 +81,7 @@ Pass `--hidden` to the executable to start straight into the tray.
 ## Data
 
 The board is saved to
-`~/.local/share/io.github.professorbossini.meu_trello_local/board.json`.
+`~/.local/share/io.github.professorbossini.minhas_tarefas/board.json`.
 Writes are debounced and atomic (written to a temporary file, then renamed),
 and a file that cannot be read is kept aside as `board.json.corrupt-<time>`
 instead of being overwritten.

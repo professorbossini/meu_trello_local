@@ -31,7 +31,7 @@ Future<void> main(List<String> args) async {
   await shell.start(startHidden: args.contains('--hidden'));
 
   runApp(
-    MeuTrelloApp(
+    MinhasTarefasApp(
       controller: controller,
       onHide: shell.hide,
       onQuit: shell.quit,

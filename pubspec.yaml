@@ -1,5 +1,5 @@
-name: meu_trello_local
-description: "A local, Trello-like kanban board for the Linux desktop with system tray integration."
+name: minhas_tarefas
+description: "A local kanban board for the Linux desktop that lives in the system tray."
 publish_to: 'none'
 
 version: 0.1.0+1

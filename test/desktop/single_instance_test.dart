@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:dbus/dbus.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:meu_trello_local/src/desktop/single_instance.dart';
+import 'package:minhas_tarefas/src/desktop/single_instance.dart';
 
 void main() {
   late DBusServer server;
