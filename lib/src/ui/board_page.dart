@@ -47,8 +47,8 @@ class _BoardPageState extends State<BoardPage> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: theme.brightness == Brightness.dark
-                  ? const [Color(0xFF1B2A4A), Color(0xFF3A1F4F)]
-                  : const [Color(0xFF0079BF), Color(0xFF7E57C2)],
+                  ? const [Color(0xFF3A2027), Color(0xFF3B1830)]
+                  : const [Color(0xFFFF8A3D), Color(0xFFE02F6B)],
             ),
           ),
           child: SafeArea(

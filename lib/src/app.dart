@@ -26,7 +26,7 @@ class MinhasTarefasApp extends StatefulWidget {
 }
 
 class _MinhasTarefasAppState extends State<MinhasTarefasApp> {
-  static const _seed = Color(0xFF0079BF);
+  static const _seed = Color(0xFFE8456A);
 
   final _dragActivity = BoardDragActivity();
 
