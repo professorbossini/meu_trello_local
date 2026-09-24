@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
+import 'theme.dart';
+
 /// Payload carried while dragging a card.
 @immutable
 class CardDragData {
@@ -84,21 +86,24 @@ class _SlopPointerState extends MultiDragPointerState {
 /// Tracks whether a board drag is in progress and where the pointer is, so
 /// scrollable areas can auto-scroll when the pointer nears their edges.
 class BoardDragActivity extends ChangeNotifier {
-  bool _active = false;
-  bool get active => _active;
+  bool get active => _payload != null;
+
+  /// What is being dragged: a [CardDragData] or a [ListDragData].
+  Object? get payload => _payload;
+  Object? _payload;
 
   Offset? _pointer;
   Offset? get pointer => _pointer;
 
-  void start() {
-    _active = true;
+  void start(Object payload) {
+    _payload = payload;
     notifyListeners();
   }
 
   void update(Offset globalPosition) => _pointer = globalPosition;
 
   void end() {
-    _active = false;
+    _payload = null;
     _pointer = null;
     notifyListeners();
   }
@@ -127,7 +132,7 @@ class BoardDragScope extends InheritedWidget {
 mixin BoardDragCallbacks<T extends StatefulWidget> on State<T> {
   BoardDragActivity get _activity => BoardDragActivity.of(context);
 
-  void onBoardDragStarted() => _activity.start();
+  void onBoardDragStarted(Object payload) => _activity.start(payload);
 
   void onBoardDragUpdate(DragUpdateDetails details) =>
       _activity.update(details.globalPosition);
@@ -144,7 +149,8 @@ enum DropSide {
       position < extent / 2 ? before : after;
 }
 
-/// The accent line showing where a dragged item will land.
+/// The accent line showing where a dragged item will land: the gradient
+/// with a soft glow, growing from its center as it appears.
 class DropIndicator extends StatelessWidget {
   const DropIndicator({super.key, this.axis = Axis.horizontal});
 
@@ -155,16 +161,39 @@ class DropIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final horizontal = axis == Axis.horizontal;
     final line = DecoratedBox(
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary,
+        gradient: LinearGradient(
+          begin: horizontal ? Alignment.centerLeft : Alignment.topCenter,
+          end: horizontal ? Alignment.centerRight : Alignment.bottomCenter,
+          colors: AppTheme.gradientColors,
+        ),
         borderRadius: BorderRadius.circular(thickness),
-        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.gradientColors[1].withValues(alpha: 0.55),
+            blurRadius: 10,
+          ),
+        ],
       ),
     );
-    return axis == Axis.horizontal
-        ? SizedBox(height: thickness, width: double.infinity, child: line)
-        : SizedBox(width: thickness, height: double.infinity, child: line);
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.2, end: 1),
+      duration: Motion.short,
+      curve: Motion.emphasized,
+      builder: (context, t, child) => Opacity(
+        opacity: t.clamp(0, 1),
+        child: Transform.scale(
+          scaleX: horizontal ? t : 1,
+          scaleY: horizontal ? 1 : t,
+          child: child,
+        ),
+      ),
+      child: horizontal
+          ? SizedBox(height: thickness, width: double.infinity, child: line)
+          : SizedBox(width: thickness, height: double.infinity, child: line),
+    );
   }
 }
 

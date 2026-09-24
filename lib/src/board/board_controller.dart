@@ -46,7 +46,14 @@ class BoardController extends ChangeNotifier {
   void renameList(String listId, String title) =>
       _apply(_board.updateList(listId, (l) => l.copyWith(title: title.trim())));
 
-  void removeList(String listId) => _apply(_board.removeList(listId));
+  /// Removes a list and returns a callback that puts it back.
+  VoidCallback removeList(String listId) {
+    final index = _board.indexOfList(listId);
+    if (index == -1) return () {};
+    final list = _board.lists[index];
+    _apply(_board.removeList(listId));
+    return () => _apply(_board.insertList(index, list));
+  }
 
   void moveList(String listId, int toIndex) =>
       _apply(_board.moveList(listId, toIndex));
@@ -66,7 +73,16 @@ class BoardController extends ChangeNotifier {
         ),
       );
 
-  void removeCard(String cardId) => _apply(_board.removeCard(cardId));
+  /// Removes a card and returns a callback that puts it back where it was,
+  /// as long as its list still exists.
+  VoidCallback removeCard(String cardId) {
+    final location = _board.locateCard(cardId);
+    if (location == null) return () {};
+    final (list, index) = location;
+    final card = list.cards[index];
+    _apply(_board.removeCard(cardId));
+    return () => _apply(_board.insertCard(list.id, index, card));
+  }
 
   void moveCard(String cardId, String toListId, int toIndex) =>
       _apply(_board.moveCard(cardId, toListId, toIndex));

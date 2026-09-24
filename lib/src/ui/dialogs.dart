@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../board/models.dart';
+import 'theme.dart';
 
 /// Result of [showCardEditor].
 sealed class CardEditorResult {}
@@ -20,8 +21,8 @@ Future<CardEditorResult?> showCardEditor(
   required TaskCard card,
   required String listTitle,
 }) {
-  return showDialog<CardEditorResult>(
-    context: context,
+  return showAppDialog<CardEditorResult>(
+    context,
     builder: (_) => _CardEditorDialog(card: card, listTitle: listTitle),
   );
 }
@@ -55,15 +56,8 @@ class _CardEditorDialogState extends State<_CardEditorDialog> {
     Navigator.pop(context, CardEdited(title, _description.text));
   }
 
-  Future<void> _delete() async {
-    final confirmed = await confirm(
-      context,
-      title: 'Excluir tarefa?',
-      message: '"${widget.card.title}" será removida permanentemente.',
-      action: 'Excluir',
-    );
-    if (confirmed && mounted) Navigator.pop(context, CardDeleted());
-  }
+  // Deleting can be undone from the snack bar, so no confirmation.
+  void _delete() => Navigator.pop(context, CardDeleted());
 
   @override
   Widget build(BuildContext context) {
@@ -115,7 +109,7 @@ class _CardEditorDialogState extends State<_CardEditorDialog> {
       actions: [
         TextButton.icon(
           onPressed: _delete,
-          icon: const Icon(Icons.delete_outline),
+          icon: const Icon(Icons.delete_outline_rounded),
           label: const Text('Excluir'),
           style: TextButton.styleFrom(foregroundColor: theme.colorScheme.error),
         ),
@@ -144,8 +138,8 @@ Future<String?> promptText(
     if (value.isNotEmpty) Navigator.pop(context, value);
   }
 
-  return showDialog<String>(
-    context: context,
+  return showAppDialog<String>(
+    context,
     builder: (context) => AlertDialog(
       title: Text(title),
       content: _DialogWidth(
@@ -168,38 +162,34 @@ Future<String?> promptText(
   ).whenComplete(controller.dispose);
 }
 
-/// Shows a destructive confirmation dialog.
-Future<bool> confirm(
+/// Shows a dialog that fades and scales in with Material 3's emphasized
+/// easing, and fades out quickly.
+Future<T?> showAppDialog<T>(
   BuildContext context, {
-  required String title,
-  required String message,
-  required String action,
-}) async {
-  final result = await showDialog<bool>(
+  required WidgetBuilder builder,
+}) {
+  return showGeneralDialog<T>(
     context: context,
-    builder: (context) {
-      final colors = Theme.of(context).colorScheme;
-      return AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: colors.error,
-              foregroundColor: colors.onError,
-            ),
-            child: Text(action),
-          ),
-        ],
+    barrierDismissible: true,
+    barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+    barrierColor: Colors.black.withValues(alpha: 0.32),
+    transitionDuration: Motion.long,
+    pageBuilder: (context, _, _) => builder(context),
+    transitionBuilder: (context, animation, _, child) {
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: Motion.emphasized,
+        reverseCurve: Curves.easeIn,
+      );
+      return FadeTransition(
+        opacity: curved,
+        child: ScaleTransition(
+          scale: Tween(begin: 0.92, end: 1.0).animate(curved),
+          child: child,
+        ),
       );
     },
   );
-  return result ?? false;
 }
 
 /// Makes dialog content as wide as [maxWidth], or narrower when the window

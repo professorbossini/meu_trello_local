@@ -5,7 +5,9 @@ import '../board/models.dart';
 import 'card_tile.dart';
 import 'dialogs.dart';
 import 'drag_and_drop.dart';
+import 'feedback.dart';
 import 'inline_composer.dart';
+import 'theme.dart';
 
 /// Width of a board column for a board [viewportWidth] pixels wide.
 ///
@@ -48,6 +50,7 @@ class ListColumn extends StatefulWidget {
 class _ListColumnState extends State<ListColumn> with BoardDragCallbacks {
   final _scroll = ScrollController();
   bool _dragging = false;
+  bool _hovered = false;
   Offset _grabOffset = Offset.zero;
   Size _size = Size.zero;
   DropSide? _listDropSide;
@@ -87,8 +90,9 @@ class _ListColumnState extends State<ListColumn> with BoardDragCallbacks {
           clipBehavior: Clip.none,
           children: [
             AnimatedOpacity(
-              opacity: _dragging ? 0.35 : 1,
-              duration: const Duration(milliseconds: 120),
+              opacity: _dragging ? 0.3 : 1,
+              duration: Motion.short,
+              curve: Motion.standard,
               child: _buildColumn(context),
             ),
             if (side != null)
@@ -106,36 +110,69 @@ class _ListColumnState extends State<ListColumn> with BoardDragCallbacks {
   }
 
   Widget _buildColumn(BuildContext context) {
+    final activity = BoardDragActivity.of(context);
     return DragTarget<CardDragData>(
       onAcceptWithDetails: (details) =>
           controller.moveCard(details.data.cardId, list.id, list.cards.length),
-      builder: (context, candidates, _) => Container(
-        width: widget.width,
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(12),
+      builder: (context, candidates, _) => MouseRegion(
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: ListenableBuilder(
+          listenable: activity,
+          builder: (context, _) {
+            // Tint the column a card would land in.
+            final receiving = _hovered && activity.payload is CardDragData;
+            return _buildBody(context, receiving, candidates.isNotEmpty);
+          },
         ),
-        padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildHeader(context),
+      ),
+    );
+  }
+
+  Widget _buildBody(BuildContext context, bool receiving, bool dropAtEnd) {
+    final colors = Theme.of(context).colorScheme;
+    return AnimatedContainer(
+      duration: Motion.medium,
+      curve: Motion.emphasized,
+      width: widget.width,
+      decoration: BoxDecoration(
+        color: receiving
+            ? Color.alphaBlend(
+                colors.primary.withValues(alpha: 0.08),
+                colors.surfaceContainer,
+              )
+            : colors.surfaceContainer,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          width: 1.5,
+          color: receiving
+              ? colors.primary.withValues(alpha: 0.45)
+              : Colors.transparent,
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(10, 6, 10, 10),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildHeader(context),
+          if (list.cards.isEmpty)
+            _EmptyListHint(receiving: receiving)
+          else
             Flexible(child: _buildCards(context)),
-            if (candidates.isNotEmpty) ...[
-              const SizedBox(height: 2),
-              const DropIndicator(),
-            ],
-            const SizedBox(height: 4),
-            InlineComposer(
-              buttonLabel: 'Adicionar tarefa',
-              hintText: 'Título da tarefa…',
-              submitLabel: 'Adicionar',
-              multiline: true,
-              onSubmit: (title) => controller.addCard(list.id, title),
-            ),
+          if (dropAtEnd && list.cards.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            const DropIndicator(),
           ],
-        ),
+          const SizedBox(height: 6),
+          InlineComposer(
+            buttonLabel: 'Adicionar tarefa',
+            hintText: 'Título da tarefa…',
+            submitLabel: 'Adicionar',
+            multiline: true,
+            onSubmit: (title) => controller.addCard(list.id, title),
+          ),
+        ],
       ),
     );
   }
@@ -162,7 +199,7 @@ class _ListColumnState extends State<ListColumn> with BoardDragCallbacks {
               feedback: Builder(builder: _buildFeedback),
               onDragStarted: () {
                 setState(() => _dragging = true);
-                onBoardDragStarted();
+                onBoardDragStarted(ListDragData(list.id));
               },
               onDragUpdate: onBoardDragUpdate,
               onDragEnd: (_) {
@@ -186,16 +223,23 @@ class _ListColumnState extends State<ListColumn> with BoardDragCallbacks {
     // does not constrain its height.
     return Transform.translate(
       offset: -_grabOffset,
-      child: Transform.rotate(
-        angle: 0.03,
-        alignment: Alignment.topLeft,
-        child: Material(
-          type: MaterialType.transparency,
-          elevation: 12,
+      child: Lift(
+        angle: 0.02,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.gradientColors[1].withValues(alpha: 0.3),
+                blurRadius: 32,
+                offset: const Offset(0, 16),
+              ),
+            ],
+          ),
           child: SizedBox.fromSize(
             size: _size,
-            child: Opacity(
-              opacity: 0.92,
+            child: Material(
+              type: MaterialType.transparency,
               child: ListColumn(
                 list: list,
                 index: widget.index,
@@ -245,7 +289,10 @@ class _ListColumnState extends State<ListColumn> with BoardDragCallbacks {
       case CardEdited(:final title, :final description):
         controller.updateCard(card.id, title: title, description: description);
       case CardDeleted():
-        controller.removeCard(card.id);
+        if (!context.mounted) return;
+        final messenger = ScaffoldMessenger.of(context);
+        final undo = controller.removeCard(card.id);
+        showUndoSnackBar(messenger, message: 'Tarefa excluída', onUndo: undo);
       case null:
         break;
     }
@@ -324,24 +371,24 @@ class _DraggableCardState extends State<DraggableCard> with BoardDragCallbacks {
                 child: BoardDraggable<CardDragData>(
                   data: CardDragData(card.id),
                   dragAnchorStrategy: pointerDragAnchorStrategy,
-                  onDragStarted: onBoardDragStarted,
+                  onDragStarted: () =>
+                      onBoardDragStarted(CardDragData(card.id)),
                   onDragUpdate: onBoardDragUpdate,
                   onDragEnd: (_) => onBoardDragEnd(),
                   // Built lazily so it picks up the grab point recorded above.
                   feedback: Builder(
                     builder: (_) => Transform.translate(
                       offset: -_grabOffset,
-                      child: Transform.rotate(
-                        angle: 0.04,
+                      child: Lift(
                         child: SizedBox(
                           width: _size.width,
-                          child: CardTile(card: card, elevated: true),
+                          child: CardTile(card: card, lifted: true),
                         ),
                       ),
                     ),
                   ),
-                  childWhenDragging: Opacity(opacity: 0.35, child: tile),
-                  child: tile,
+                  childWhenDragging: _CardSlot(child: tile),
+                  child: Appear(child: tile),
                 ),
               ),
             ),
@@ -378,19 +425,14 @@ class ListHeader extends StatelessWidget {
     if (title != null) controller.renameList(list.id, title);
   }
 
-  Future<void> _delete(BuildContext context) async {
-    final count = list.cards.length;
-    final confirmed =
-        count == 0 ||
-        await confirm(
-          context,
-          title: 'Excluir lista?',
-          message:
-              'A lista "${list.title}" e ${count == 1 ? 'sua tarefa' : 'suas $count tarefas'} '
-              'serão removidas permanentemente.',
-          action: 'Excluir',
-        );
-    if (confirmed) controller.removeList(list.id);
+  void _delete(BuildContext context) {
+    final messenger = ScaffoldMessenger.of(context);
+    final undo = controller.removeList(list.id);
+    showUndoSnackBar(
+      messenger,
+      message: 'Lista "${list.title}" excluída',
+      onUndo: undo,
+    );
   }
 
   @override
@@ -402,14 +444,12 @@ class ListHeader extends StatelessWidget {
           child: GestureDetector(
             onDoubleTap: () => _rename(context),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(8, 8, 0, 8),
+              padding: const EdgeInsets.fromLTRB(8, 10, 0, 10),
               child: Text(
                 list.title,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                style: theme.textTheme.titleMedium?.withWeight(FontWeight.w500),
               ),
             ),
           ),
@@ -417,7 +457,7 @@ class ListHeader extends StatelessWidget {
         _CountBadge(count: list.cards.length),
         PopupMenuButton<_ListAction>(
           tooltip: 'Ações da lista',
-          icon: const Icon(Icons.more_horiz, size: 20),
+          icon: const Icon(Icons.more_horiz_rounded, size: 20),
           onSelected: (action) => switch (action) {
             _ListAction.rename => _rename(context),
             _ListAction.delete => _delete(context),
@@ -456,16 +496,84 @@ class _CountBadge extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.only(left: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
       decoration: BoxDecoration(
-        color: colors.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(10),
+        color: colors.secondaryContainer,
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: Text(
-        '$count',
-        style: Theme.of(
-          context,
-        ).textTheme.labelSmall?.copyWith(color: colors.onSurfaceVariant),
+      child: AnimatedSwitcher(
+        duration: Motion.medium,
+        switchInCurve: Motion.emphasized,
+        transitionBuilder: (child, animation) => ScaleTransition(
+          scale: animation,
+          child: FadeTransition(opacity: animation, child: child),
+        ),
+        child: Text(
+          '$count',
+          key: ValueKey(count),
+          style: Theme.of(
+            context,
+          ).textTheme.labelMedium?.copyWith(color: colors.onSecondaryContainer),
+        ),
+      ),
+    );
+  }
+}
+
+/// Keeps a dragged card's place in its list, outlined like an empty slot.
+class _CardSlot extends StatelessWidget {
+  const _CardSlot({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colors.primary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(CardTile.radius),
+        border: Border.all(color: colors.primary.withValues(alpha: 0.35)),
+      ),
+      child: Opacity(opacity: 0, child: child),
+    );
+  }
+}
+
+/// Placeholder shown in a list without cards.
+class _EmptyListHint extends StatelessWidget {
+  const _EmptyListHint({required this.receiving});
+
+  /// Whether a card is being dragged over the list.
+  final bool receiving;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return AnimatedContainer(
+      duration: Motion.medium,
+      curve: Motion.emphasized,
+      height: receiving ? 72 : 56,
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(CardTile.radius),
+        border: Border.all(
+          color: receiving
+              ? colors.primary.withValues(alpha: 0.6)
+              : colors.outlineVariant,
+        ),
+      ),
+      alignment: Alignment.center,
+      child: AnimatedSwitcher(
+        duration: Motion.short,
+        child: Text(
+          receiving ? 'Solte aqui' : 'Nenhuma tarefa',
+          key: ValueKey(receiving),
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: receiving ? colors.primary : colors.onSurfaceVariant,
+          ),
+        ),
       ),
     );
   }

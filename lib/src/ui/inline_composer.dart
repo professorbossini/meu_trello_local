@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'theme.dart';
+
 /// A button that turns into a text field for quickly adding items.
 ///
 /// Enter submits and keeps the field open for the next entry, Escape or the
@@ -58,20 +60,41 @@ class _InlineComposerState extends State<InlineComposer> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_open) {
-      return TextButton.icon(
-        onPressed: () => _setOpen(true),
-        icon: const Icon(Icons.add, size: 18),
-        label: Text(widget.buttonLabel),
-        style: TextButton.styleFrom(
-          alignment: Alignment.centerLeft,
-          minimumSize: const Size.fromHeight(40),
-          foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
+    // Grow and shrink smoothly while cross-fading the two states.
+    return AnimatedSize(
+      duration: Motion.medium,
+      curve: Motion.emphasized,
+      alignment: Alignment.topCenter,
+      child: AnimatedSwitcher(
+        duration: Motion.short,
+        switchInCurve: Motion.emphasized,
+        layoutBuilder: (current, previous) => Stack(
+          alignment: Alignment.topCenter,
+          children: [...previous, ?current],
         ),
-      );
-    }
+        child: _open ? _buildEditor(context) : _buildButton(context),
+      ),
+    );
+  }
 
+  Widget _buildButton(BuildContext context) {
+    return TextButton.icon(
+      key: const ValueKey('button'),
+      onPressed: () => _setOpen(true),
+      icon: const Icon(Icons.add_rounded, size: 20),
+      label: Text(widget.buttonLabel),
+      style: TextButton.styleFrom(
+        alignment: Alignment.centerLeft,
+        minimumSize: const Size.fromHeight(44),
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+    );
+  }
+
+  Widget _buildEditor(BuildContext context) {
     return CallbackShortcuts(
+      key: const ValueKey('editor'),
       bindings: {
         const SingleActivator(LogicalKeyboardKey.escape): () => _setOpen(false),
         const SingleActivator(LogicalKeyboardKey.enter): _submit,
@@ -85,14 +108,7 @@ class _InlineComposerState extends State<InlineComposer> {
             focusNode: _focusNode,
             minLines: widget.multiline ? 2 : 1,
             maxLines: widget.multiline ? 4 : 1,
-            decoration: InputDecoration(
-              hintText: widget.hintText,
-              filled: true,
-              isDense: true,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
+            decoration: InputDecoration(hintText: widget.hintText),
           ),
           const SizedBox(height: 8),
           Row(
@@ -110,7 +126,7 @@ class _InlineComposerState extends State<InlineComposer> {
               IconButton(
                 tooltip: 'Cancelar (Esc)',
                 onPressed: () => _setOpen(false),
-                icon: const Icon(Icons.close),
+                icon: const Icon(Icons.close_rounded),
               ),
             ],
           ),

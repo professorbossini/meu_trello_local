@@ -72,6 +72,31 @@ void main() {
       ]);
     });
 
+    test('removals can be undone in place', () async {
+      final controller = BoardController(InMemoryBoardRepository());
+      await controller.load();
+      final listId = controller.board.lists.first.id;
+      controller
+        ..addCard(listId, 'One')
+        ..addCard(listId, 'Two');
+      final cardId = controller.board.lists.first.cards.first.id;
+
+      final undoCard = controller.removeCard(cardId);
+      controller.addCard(listId, 'Three');
+      undoCard();
+      expect(controller.board.lists.first.cards.map((c) => c.title), [
+        'One',
+        'Two',
+        'Three',
+      ]);
+
+      final undoList = controller.removeList(listId);
+      expect(controller.board.lists, hasLength(2));
+      undoList();
+      expect(controller.board.lists.first.id, listId);
+      expect(controller.board.lists.first.cards, hasLength(3));
+    });
+
     test('notifies listeners on change only', () async {
       final controller = BoardController(InMemoryBoardRepository());
       await controller.load();

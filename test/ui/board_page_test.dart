@@ -57,4 +57,31 @@ void main() {
       'Review',
     ]);
   });
+
+  testWidgets('shows a hint in empty lists', (tester) async {
+    await pumpBoard(tester, sampleBoard());
+
+    expect(find.text('Nenhuma tarefa'), findsOneWidget);
+  });
+
+  testWidgets('deleting a card can be undone', (tester) async {
+    final controller = await pumpBoard(tester, sampleBoard());
+
+    await tester.tap(find.text('Write tests'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Excluir'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Write tests'), findsNothing);
+    expect(find.text('Tarefa excluída'), findsOneWidget);
+
+    await tester.tap(find.text('Desfazer'));
+    await tester.pumpAndSettle();
+
+    expect(controller.board.lists.first.cards.map((c) => c.title), [
+      'Write tests',
+      'Ship it',
+    ]);
+    expect(find.text('Write tests'), findsOneWidget);
+  });
 }

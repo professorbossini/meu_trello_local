@@ -106,6 +106,10 @@ class Board {
 
   Board addList(TaskList list) => Board(lists: [...lists, list]);
 
+  /// Puts [list] back at [index], e.g. to undo its removal.
+  Board insertList(int index, TaskList list) =>
+      Board(lists: [...lists]..insert(index.clamp(0, lists.length), list));
+
   Board updateList(String listId, TaskList Function(TaskList) update) =>
       Board(lists: [for (final l in lists) l.id == listId ? update(l) : l]);
 
@@ -130,6 +134,14 @@ class Board {
 
   Board addCard(String listId, TaskCard card) =>
       updateList(listId, (l) => l.copyWith(cards: [...l.cards, card]));
+
+  /// Puts [card] back into [listId] at [index], e.g. to undo its removal.
+  Board insertCard(String listId, int index, TaskCard card) => updateList(
+    listId,
+    (l) => l.copyWith(
+      cards: [...l.cards]..insert(index.clamp(0, l.cards.length), card),
+    ),
+  );
 
   Board updateCard(String cardId, TaskCard Function(TaskCard) update) {
     final location = locateCard(cardId);
