@@ -17,11 +17,11 @@ class BoardPage extends StatefulWidget {
 }
 
 class _BoardPageState extends State<BoardPage> {
-  final _horizontal = ScrollController();
+  final _scroll = ScrollController();
 
   @override
   void dispose() {
-    _horizontal.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -52,48 +52,50 @@ class _BoardPageState extends State<BoardPage> {
     );
   }
 
-  Widget _buildLists(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) =>
-          _buildScroller(listColumnWidthFor(constraints.maxWidth)),
-    );
-  }
+  static const _padding = EdgeInsets.fromLTRB(16, 8, 16, 24);
 
-  Widget _buildScroller(double columnWidth) {
+  Widget _buildLists(BuildContext context) {
     final lists = widget.controller.board.lists;
-    return DragAutoScroller(
-      controller: _horizontal,
-      axis: Axis.horizontal,
-      child: Scrollbar(
-        controller: _horizontal,
-        thumbVisibility: true,
-        child: SingleChildScrollView(
-          controller: _horizontal,
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (final (index, list) in lists.indexed) ...[
-                ListColumn(
-                  key: ValueKey(list.id),
-                  list: list,
-                  index: index,
-                  controller: widget.controller,
-                  width: columnWidth,
-                ),
-                const SizedBox(width: 12),
-              ],
-              _AddListColumn(
-                width: columnWidth,
-                onSubmit: widget.controller.addList,
-                onListDropped: (listId) =>
-                    widget.controller.moveList(listId, lists.length),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final layout = BoardLayout.compute(
+          constraints.maxWidth - _padding.horizontal,
+          lists.length + 1,
+        );
+        return DragAutoScroller(
+          controller: _scroll,
+          axis: Axis.vertical,
+          child: Scrollbar(
+            controller: _scroll,
+            child: SingleChildScrollView(
+              controller: _scroll,
+              padding: _padding,
+              child: Wrap(
+                spacing: BoardLayout.gap,
+                runSpacing: BoardLayout.gap,
+                children: [
+                  for (final (index, list) in lists.indexed)
+                    ListColumn(
+                      key: ValueKey(list.id),
+                      list: list,
+                      index: index,
+                      controller: widget.controller,
+                      width: layout.columnWidth,
+                      stacked: layout.stacked,
+                    ),
+                  _AddListColumn(
+                    width: layout.columnWidth,
+                    stacked: layout.stacked,
+                    onSubmit: widget.controller.addList,
+                    onListDropped: (listId) =>
+                        widget.controller.moveList(listId, lists.length),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -101,11 +103,13 @@ class _BoardPageState extends State<BoardPage> {
 class _AddListColumn extends StatelessWidget {
   const _AddListColumn({
     required this.width,
+    required this.stacked,
     required this.onSubmit,
     required this.onListDropped,
   });
 
   final double width;
+  final bool stacked;
   final ValueChanged<String> onSubmit;
 
   /// Called when a list is dropped here, moving it to the end of the board.
@@ -119,11 +123,18 @@ class _AddListColumn extends StatelessWidget {
         clipBehavior: Clip.none,
         children: [
           _buildBody(context),
-          if (candidates.isNotEmpty)
+          if (candidates.isNotEmpty && stacked)
+            const Positioned(
+              left: 0,
+              right: 0,
+              top: -(BoardLayout.gap + DropIndicator.thickness) / 2,
+              child: DropIndicator(),
+            )
+          else if (candidates.isNotEmpty)
             const Positioned(
               top: 0,
               bottom: 0,
-              left: -(12 + DropIndicator.thickness) / 2,
+              left: -(BoardLayout.gap + DropIndicator.thickness) / 2,
               child: DropIndicator(axis: Axis.vertical),
             ),
         ],

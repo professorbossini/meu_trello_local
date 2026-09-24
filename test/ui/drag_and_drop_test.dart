@@ -5,22 +5,6 @@ import 'package:minhas_tarefas/src/board/board_controller.dart';
 
 import 'helpers.dart';
 
-/// Drags from [from] to [to] with a mouse, moving in small steps like a real
-/// pointer so every drag target along the way gets enter/move events.
-Future<void> mouseDrag(WidgetTester tester, Offset from, Offset to) async {
-  final gesture = await tester.startGesture(
-    from,
-    kind: PointerDeviceKind.mouse,
-  );
-  const steps = 10;
-  for (var i = 1; i <= steps; i++) {
-    await gesture.moveTo(Offset.lerp(from, to, i / steps)!);
-    await tester.pump(const Duration(milliseconds: 16));
-  }
-  await gesture.up();
-  await tester.pumpAndSettle();
-}
-
 List<String> titlesOf(BoardController controller, int listIndex) =>
     controller.board.lists[listIndex].cards.map((c) => c.title).toList();
 

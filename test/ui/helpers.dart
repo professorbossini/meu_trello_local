@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:minhas_tarefas/src/app.dart';
@@ -43,3 +44,19 @@ Board sampleBoard() => Board(
     const TaskList(id: 'done', title: 'Concluído'),
   ],
 );
+
+/// Drags from [from] to [to] with a mouse, moving in small steps like a real
+/// pointer so every drag target along the way gets enter/move events.
+Future<void> mouseDrag(WidgetTester tester, Offset from, Offset to) async {
+  final gesture = await tester.startGesture(
+    from,
+    kind: PointerDeviceKind.mouse,
+  );
+  const steps = 10;
+  for (var i = 1; i <= steps; i++) {
+    await gesture.moveTo(Offset.lerp(from, to, i / steps)!);
+    await tester.pump(const Duration(milliseconds: 16));
+  }
+  await gesture.up();
+  await tester.pumpAndSettle();
+}

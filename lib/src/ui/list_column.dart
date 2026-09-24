@@ -9,14 +9,48 @@ import 'feedback.dart';
 import 'inline_composer.dart';
 import 'theme.dart';
 
-/// Width of a board column for a board [viewportWidth] pixels wide.
+/// How the board lays its columns out for a given width.
 ///
-/// On narrow windows a column takes almost the whole width, leaving the
-/// edge of the next one peeking in to hint that the board scrolls.
-double listColumnWidthFor(double viewportWidth) {
-  if (viewportWidth >= 900) return 280;
-  if (viewportWidth >= 600) return 260;
-  return (viewportWidth - 56).clamp(220.0, 300.0);
+/// Columns sit side by side while they fit; the ones that don't wrap onto
+/// new rows, down to a single column per row on narrow windows. Nothing is
+/// ever hidden, so every list stays reachable for drag and drop.
+@immutable
+class BoardLayout {
+  const BoardLayout({required this.columnsPerRow, required this.columnWidth});
+
+  /// Lays out [itemCount] columns (the lists plus the "add list" column)
+  /// across [availableWidth] pixels.
+  factory BoardLayout.compute(double availableWidth, int itemCount) {
+    final fitting = ((availableWidth + gap) / (minColumnWidth + gap)).floor();
+    final columns = fitting.clamp(1, itemCount < 1 ? 1 : itemCount);
+    final width = (availableWidth - gap * (columns - 1)) / columns;
+    return BoardLayout(
+      columnsPerRow: columns,
+      columnWidth: width.clamp(0, maxColumnWidth).toDouble(),
+    );
+  }
+
+  static const gap = 12.0;
+  static const minColumnWidth = 260.0;
+  static const maxColumnWidth = 340.0;
+
+  final int columnsPerRow;
+  final double columnWidth;
+
+  /// Whether lists are stacked one per row.
+  bool get stacked => columnsPerRow == 1;
+
+  @override
+  bool operator ==(Object other) =>
+      other is BoardLayout &&
+      other.columnsPerRow == columnsPerRow &&
+      other.columnWidth == columnWidth;
+
+  @override
+  int get hashCode => Object.hash(columnsPerRow, columnWidth);
+
+  @override
+  String toString() => 'BoardLayout($columnsPerRow x $columnWidth)';
 }
 
 /// A single board column: header, its queue of cards and a card composer.
@@ -34,10 +68,15 @@ class ListColumn extends StatefulWidget {
     required this.index,
     required this.controller,
     required this.width,
+    this.stacked = false,
   });
 
   final TaskList list;
   final double width;
+
+  /// Whether lists are stacked vertically, one per row. Lists dropped here
+  /// then land above or below this one instead of to its left or right.
+  final bool stacked;
 
   /// Position of [list] on the board.
   final int index;
@@ -48,7 +87,6 @@ class ListColumn extends StatefulWidget {
 }
 
 class _ListColumnState extends State<ListColumn> with BoardDragCallbacks {
-  final _scroll = ScrollController();
   bool _dragging = false;
   bool _hovered = false;
   Offset _grabOffset = Offset.zero;
@@ -59,21 +97,15 @@ class _ListColumnState extends State<ListColumn> with BoardDragCallbacks {
   BoardController get controller => widget.controller;
 
   @override
-  void dispose() {
-    _scroll.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return DragTarget<ListDragData>(
       onWillAcceptWithDetails: (details) => details.data.listId != list.id,
       onMove: (details) {
         final box = context.findRenderObject()! as RenderBox;
-        final side = DropSide.fromPosition(
-          box.globalToLocal(details.offset).dx,
-          box.size.width,
-        );
+        final local = box.globalToLocal(details.offset);
+        final side = widget.stacked
+            ? DropSide.fromPosition(local.dy, box.size.height)
+            : DropSide.fromPosition(local.dx, box.size.width);
         if (side != _listDropSide) setState(() => _listDropSide = side);
       },
       onLeave: (_) => setState(() => _listDropSide = null),
@@ -84,8 +116,9 @@ class _ListColumnState extends State<ListColumn> with BoardDragCallbacks {
       },
       builder: (context, candidates, _) {
         final side = candidates.isEmpty ? null : _listDropSide;
-        // The gap between columns is 12px wide; center the line inside it.
-        const inset = -(12 + DropIndicator.thickness) / 2;
+        // Center the line in the gap between columns.
+        const inset = -(BoardLayout.gap + DropIndicator.thickness) / 2;
+        final before = side == DropSide.before;
         return Stack(
           clipBehavior: Clip.none,
           children: [
@@ -95,12 +128,20 @@ class _ListColumnState extends State<ListColumn> with BoardDragCallbacks {
               curve: Motion.standard,
               child: _buildColumn(context),
             ),
-            if (side != null)
+            if (side != null && widget.stacked)
+              Positioned(
+                left: 0,
+                right: 0,
+                top: before ? inset : null,
+                bottom: before ? null : inset,
+                child: const DropIndicator(),
+              )
+            else if (side != null)
               Positioned(
                 top: 0,
                 bottom: 0,
-                left: side == DropSide.before ? inset : null,
-                right: side == DropSide.after ? inset : null,
+                left: before ? inset : null,
+                right: before ? null : inset,
                 child: const DropIndicator(axis: Axis.vertical),
               ),
           ],
@@ -130,11 +171,23 @@ class _ListColumnState extends State<ListColumn> with BoardDragCallbacks {
   }
 
   Widget _buildBody(BuildContext context, bool receiving, bool dropAtEnd) {
+    // The width follows the window directly; animating it would lag behind
+    // while the window is being resized.
+    return SizedBox(
+      width: widget.width,
+      child: _buildDecoratedBody(context, receiving, dropAtEnd),
+    );
+  }
+
+  Widget _buildDecoratedBody(
+    BuildContext context,
+    bool receiving,
+    bool dropAtEnd,
+  ) {
     final colors = Theme.of(context).colorScheme;
     return AnimatedContainer(
       duration: Motion.medium,
       curve: Motion.emphasized,
-      width: widget.width,
       decoration: BoxDecoration(
         color: receiving
             ? Color.alphaBlend(
@@ -159,7 +212,7 @@ class _ListColumnState extends State<ListColumn> with BoardDragCallbacks {
           if (list.cards.isEmpty)
             _EmptyListHint(receiving: receiving)
           else
-            Flexible(child: _buildCards(context)),
+            _buildCards(context),
           if (dropAtEnd && list.cards.isNotEmpty) ...[
             const SizedBox(height: 2),
             const DropIndicator(),
@@ -245,6 +298,7 @@ class _ListColumnState extends State<ListColumn> with BoardDragCallbacks {
                 index: widget.index,
                 controller: controller,
                 width: widget.width,
+                stacked: widget.stacked,
               ),
             ),
           ),
@@ -253,29 +307,21 @@ class _ListColumnState extends State<ListColumn> with BoardDragCallbacks {
     );
   }
 
+  /// The cards grow the column; the board scrolls as a whole.
   Widget _buildCards(BuildContext context) {
-    return DragAutoScroller(
-      controller: _scroll,
-      axis: Axis.vertical,
-      child: Scrollbar(
-        controller: _scroll,
-        child: ListView.builder(
-          controller: _scroll,
-          shrinkWrap: true,
-          itemCount: list.cards.length,
-          itemBuilder: (context, index) {
-            final card = list.cards[index];
-            return DraggableCard(
-              key: ValueKey(card.id),
-              card: card,
-              listId: list.id,
-              index: index,
-              controller: controller,
-              onTap: () => _openCard(context, card),
-            );
-          },
-        ),
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final (index, card) in list.cards.indexed)
+          DraggableCard(
+            key: ValueKey(card.id),
+            card: card,
+            listId: list.id,
+            index: index,
+            controller: controller,
+            onTap: () => _openCard(context, card),
+          ),
+      ],
     );
   }
 
