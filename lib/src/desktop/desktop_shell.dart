@@ -56,7 +56,7 @@ class DesktopShell with WindowListener {
     windowManager.addListener(this);
     await windowManager.setPreventClose(_hasTray);
 
-    await windowManager.setMinimumSize(const Size(640, 420));
+    await windowManager.setMinimumSize(const Size(360, 480));
 
     // The runner shows the window at launch unless started with --hidden,
     // see linux/runner/my_application.cc.

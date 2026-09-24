@@ -73,12 +73,13 @@ class _CardEditorDialogState extends State<_CardEditorDialog> {
     ).formatMediumDate(widget.card.createdAt);
 
     return AlertDialog(
+      scrollable: true,
       title: Text(
         'Na lista ${widget.listTitle}',
         style: theme.textTheme.labelLarge,
       ),
-      content: SizedBox(
-        width: 520,
+      content: _DialogWidth(
+        maxWidth: 520,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -147,8 +148,8 @@ Future<String?> promptText(
     context: context,
     builder: (context) => AlertDialog(
       title: Text(title),
-      content: SizedBox(
-        width: 360,
+      content: _DialogWidth(
+        maxWidth: 360,
         child: TextField(
           controller: controller,
           autofocus: true,
@@ -199,4 +200,19 @@ Future<bool> confirm(
     },
   );
   return result ?? false;
+}
+
+/// Makes dialog content as wide as [maxWidth], or narrower when the window
+/// is too small for it.
+class _DialogWidth extends StatelessWidget {
+  const _DialogWidth({required this.maxWidth, required this.child});
+
+  final double maxWidth;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => ConstrainedBox(
+    constraints: BoxConstraints(maxWidth: maxWidth),
+    child: SizedBox(width: double.maxFinite, child: child),
+  );
 }

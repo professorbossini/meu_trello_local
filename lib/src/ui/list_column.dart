@@ -7,7 +7,15 @@ import 'dialogs.dart';
 import 'drag_and_drop.dart';
 import 'inline_composer.dart';
 
-const listColumnWidth = 280.0;
+/// Width of a board column for a board [viewportWidth] pixels wide.
+///
+/// On narrow windows a column takes almost the whole width, leaving the
+/// edge of the next one peeking in to hint that the board scrolls.
+double listColumnWidthFor(double viewportWidth) {
+  if (viewportWidth >= 900) return 280;
+  if (viewportWidth >= 600) return 260;
+  return (viewportWidth - 56).clamp(220.0, 300.0);
+}
 
 /// A single board column: header, its queue of cards and a card composer.
 ///
@@ -23,9 +31,11 @@ class ListColumn extends StatefulWidget {
     required this.list,
     required this.index,
     required this.controller,
+    required this.width,
   });
 
   final TaskList list;
+  final double width;
 
   /// Position of [list] on the board.
   final int index;
@@ -100,7 +110,7 @@ class _ListColumnState extends State<ListColumn> with BoardDragCallbacks {
       onAcceptWithDetails: (details) =>
           controller.moveCard(details.data.cardId, list.id, list.cards.length),
       builder: (context, candidates, _) => Container(
-        width: listColumnWidth,
+        width: widget.width,
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(12),
@@ -190,6 +200,7 @@ class _ListColumnState extends State<ListColumn> with BoardDragCallbacks {
                 list: list,
                 index: widget.index,
                 controller: controller,
+                width: widget.width,
               ),
             ),
           ),

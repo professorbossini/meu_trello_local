@@ -63,6 +63,13 @@ class _BoardPageState extends State<BoardPage> {
   }
 
   Widget _buildLists(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) =>
+          _buildScroller(listColumnWidthFor(constraints.maxWidth)),
+    );
+  }
+
+  Widget _buildScroller(double columnWidth) {
     final lists = widget.controller.board.lists;
     return DragAutoScroller(
       controller: _horizontal,
@@ -83,10 +90,12 @@ class _BoardPageState extends State<BoardPage> {
                   list: list,
                   index: index,
                   controller: widget.controller,
+                  width: columnWidth,
                 ),
                 const SizedBox(width: 12),
               ],
               _AddListColumn(
+                width: columnWidth,
                 onSubmit: widget.controller.addList,
                 onListDropped: (listId) =>
                     widget.controller.moveList(listId, lists.length),
@@ -100,8 +109,13 @@ class _BoardPageState extends State<BoardPage> {
 }
 
 class _AddListColumn extends StatelessWidget {
-  const _AddListColumn({required this.onSubmit, required this.onListDropped});
+  const _AddListColumn({
+    required this.width,
+    required this.onSubmit,
+    required this.onListDropped,
+  });
 
+  final double width;
   final ValueChanged<String> onSubmit;
 
   /// Called when a list is dropped here, moving it to the end of the board.
@@ -129,7 +143,7 @@ class _AddListColumn extends StatelessWidget {
 
   Widget _buildBody(BuildContext context) {
     return Container(
-      width: listColumnWidth,
+      width: width,
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Theme.of(

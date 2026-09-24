@@ -5,9 +5,14 @@ import 'package:minhas_tarefas/src/board/board_controller.dart';
 import 'package:minhas_tarefas/src/board/board_repository.dart';
 import 'package:minhas_tarefas/src/board/models.dart';
 
-/// Pumps the whole app on a desktop-sized window, backed by [board].
-Future<BoardController> pumpBoard(WidgetTester tester, Board board) async {
-  tester.view.physicalSize = const Size(1400, 900);
+/// Pumps the whole app on a window of [size] logical pixels, backed by
+/// [board].
+Future<BoardController> pumpBoard(
+  WidgetTester tester,
+  Board board, {
+  Size size = const Size(1400, 900),
+}) async {
+  tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
 
