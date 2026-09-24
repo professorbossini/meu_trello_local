@@ -1,16 +1,21 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-/// Procedurally rendered application icon: a warm gradient tile holding a
-/// short checklist, two tasks ticked off and one still open.
+/// Procedurally rendered application icon: a tile in the app's
+/// blue-violet-rose accent gradient holding a short checklist, two tasks
+/// ticked off and one still open.
 ///
 /// Drawing it in code keeps a single source of truth for every size the
 /// tray and the desktop entry need, with no binary assets to keep in sync.
 /// This file is pure Dart on purpose so `tool/generate_icons.dart` can reuse
 /// it outside Flutter.
 abstract final class AppIcon {
-  static const _topColor = (0xFF, 0x8A, 0x3D);
-  static const _bottomColor = (0xE0, 0x2F, 0x6B);
+  /// Diagonal gradient stops, matching `AppTheme.gradientColors`.
+  static const _gradientStops = [
+    (0x42, 0x85, 0xF4),
+    (0x9B, 0x72, 0xCB),
+    (0xD9, 0x65, 0x70),
+  ];
   static const _white = (0xFF, 0xFF, 0xFF);
 
   /// Vertical centers of the checklist rows, in unit coordinates.
@@ -69,7 +74,7 @@ abstract final class AppIcon {
   static (double, double, double, double) _sample(double u, double v) {
     if (!_inRoundedRect(u, v, 0, 0, 1, 1, 0.22)) return (0, 0, 0, 0);
 
-    final tile = _gradient(v);
+    final tile = _gradient((u + v) / 2);
     var color = tile;
     void paint((int, int, int) paint, [double opacity = 1]) {
       color = (
@@ -105,11 +110,19 @@ abstract final class AppIcon {
     return (color.$1.toDouble(), color.$2.toDouble(), color.$3.toDouble(), 1);
   }
 
-  static (int, int, int) _gradient(double t) => (
-    _mix(_topColor.$1, _bottomColor.$1, t),
-    _mix(_topColor.$2, _bottomColor.$2, t),
-    _mix(_topColor.$3, _bottomColor.$3, t),
-  );
+  static (int, int, int) _gradient(double t) {
+    final segments = _gradientStops.length - 1;
+    final position = t.clamp(0.0, 1.0) * segments;
+    final index = position.floor().clamp(0, segments - 1);
+    final from = _gradientStops[index];
+    final to = _gradientStops[index + 1];
+    final local = position - index;
+    return (
+      _mix(from.$1, to.$1, local),
+      _mix(from.$2, to.$2, local),
+      _mix(from.$3, to.$3, local),
+    );
+  }
 
   static int _mix(int from, int to, double t) =>
       (from + (to - from) * t).round();
