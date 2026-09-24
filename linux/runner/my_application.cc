@@ -47,6 +47,17 @@ static void my_application_activate(GApplication* application) {
     gtk_window_set_title(window, "Meu Trello Local");
   }
 
+  // Use the icon bundled with the Flutter assets, so the window has the app
+  // icon even when no desktop entry has been installed.
+  g_autofree gchar* executable = g_file_read_link("/proc/self/exe", nullptr);
+  if (executable != nullptr) {
+    g_autofree gchar* directory = g_path_get_dirname(executable);
+    g_autofree gchar* icon = g_build_filename(
+        directory, "data", "flutter_assets", "assets", "icon", "app_icon.png",
+        nullptr);
+    gtk_window_set_icon_from_file(window, icon, nullptr);
+  }
+
   gtk_window_set_default_size(window, 1200, 760);
   // Realize without showing: the Dart side (window_manager) decides when to
   // show the window, which allows starting hidden in the system tray.
