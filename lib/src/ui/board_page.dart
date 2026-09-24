@@ -38,20 +38,24 @@ class _BoardPageState extends State<BoardPage> {
         ),
       ),
       extendBodyBehindAppBar: true,
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: theme.brightness == Brightness.dark
-                ? const [Color(0xFF1B2A4A), Color(0xFF3A1F4F)]
-                : const [Color(0xFF0079BF), Color(0xFF7E57C2)],
+      // Fill the whole window so the background and the scroll area span it
+      // even when the lists are short.
+      body: SizedBox.expand(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: theme.brightness == Brightness.dark
+                  ? const [Color(0xFF1B2A4A), Color(0xFF3A1F4F)]
+                  : const [Color(0xFF0079BF), Color(0xFF7E57C2)],
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: ListenableBuilder(
-            listenable: widget.controller,
-            builder: (context, _) => _buildLists(context),
+          child: SafeArea(
+            child: ListenableBuilder(
+              listenable: widget.controller,
+              builder: (context, _) => _buildLists(context),
+            ),
           ),
         ),
       ),

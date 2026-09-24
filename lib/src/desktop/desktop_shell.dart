@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:dbus/dbus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'tray/dbus_menu.dart';
@@ -22,6 +23,7 @@ class DesktopShell with WindowListener {
     : _client = client;
 
   static const title = 'Meu Trello Local';
+  static const _windowChannel = MethodChannel('desktop/window');
 
   final DBusClient _client;
 
@@ -54,25 +56,26 @@ class DesktopShell with WindowListener {
     windowManager.addListener(this);
     await windowManager.setPreventClose(_hasTray);
 
-    const options = WindowOptions(
-      title: title,
-      size: Size(1200, 760),
-      minimumSize: Size(640, 420),
-      center: true,
-    );
-    await windowManager.waitUntilReadyToShow(options, () async {
-      if (startHidden && _hasTray) {
-        await _setVisible(false);
-      } else {
-        await show();
-      }
-    });
+    await windowManager.setMinimumSize(const Size(640, 420));
+
+    // The runner shows the window at launch unless started with --hidden,
+    // see linux/runner/my_application.cc.
+    if (startHidden && !_hasTray) {
+      await show();
+    } else {
+      await _setVisible(!startHidden);
+    }
   }
 
   Future<void> show() async {
     if (await windowManager.isMinimized()) await windowManager.restore();
     await windowManager.show();
-    await windowManager.focus();
+    // Implemented in linux/runner/my_application.cc; unlike a plain focus
+    // request it is not blocked by focus stealing prevention.
+    await _windowChannel.invokeMethod<void>(
+      'activate',
+      _tray?.takeActivationToken(),
+    );
     await _setVisible(true);
   }
 

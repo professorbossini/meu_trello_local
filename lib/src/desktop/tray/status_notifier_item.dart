@@ -41,6 +41,17 @@ class StatusNotifierItem {
   /// Called on a primary (usually left) click on the icon.
   final VoidCallback onActivate;
 
+  String? _activationToken;
+
+  /// Returns, and forgets, the activation token the tray host sent along
+  /// with the latest click, if any. Passing it on when raising the window
+  /// lets the window manager know the user asked for it.
+  String? takeActivationToken() {
+    final token = _activationToken;
+    _activationToken = null;
+    return token;
+  }
+
   late final _item = _ItemObject(this);
   StreamSubscription<DBusNameOwnerChangedEvent>? _watcherRestarts;
 
@@ -141,6 +152,10 @@ class _ItemObject extends DBusObject {
       case 'Activate':
         _owner.onActivate();
         return DBusMethodSuccessResponse();
+      case 'ProvideXdgActivationToken':
+        // Sent by Plasma right before Activate.
+        _owner._activationToken = methodCall.values.first.asString();
+        return DBusMethodSuccessResponse();
       case 'SecondaryActivate' || 'Scroll':
         return DBusMethodSuccessResponse();
       case 'ContextMenu':
@@ -186,6 +201,7 @@ class _ItemObject extends DBusObject {
           method('Activate', ['i', 'i']),
           method('SecondaryActivate', ['i', 'i']),
           method('Scroll', ['i', 's']),
+          method('ProvideXdgActivationToken', ['s']),
         ],
         signals: [
           for (final name in [
