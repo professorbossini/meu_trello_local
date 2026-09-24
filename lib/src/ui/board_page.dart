@@ -4,6 +4,7 @@ import '../board/board_controller.dart';
 import 'drag_and_drop.dart';
 import 'inline_composer.dart';
 import 'list_column.dart';
+import 'theme.dart';
 
 /// The main screen: a horizontally scrolling row of lists.
 class BoardPage extends StatefulWidget {
@@ -26,37 +27,26 @@ class _BoardPageState extends State<BoardPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Minhas Tarefas'),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        titleTextStyle: theme.textTheme.titleLarge?.copyWith(
-          color: Colors.white,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      extendBodyBehindAppBar: true,
       // Fill the whole window so the background and the scroll area span it
       // even when the lists are short.
       body: SizedBox.expand(
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: theme.brightness == Brightness.dark
-                  ? const [Color(0xFF3A2027), Color(0xFF3B1830)]
-                  : const [Color(0xFFFF8A3D), Color(0xFFE02F6B)],
+        child: Stack(
+          children: [
+            const Positioned.fill(child: _Aura()),
+            SafeArea(
+              child: ListenableBuilder(
+                listenable: widget.controller,
+                builder: (context, _) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _Header(controller: widget.controller),
+                    Expanded(child: _buildLists(context)),
+                  ],
+                ),
+              ),
             ),
-          ),
-          child: SafeArea(
-            child: ListenableBuilder(
-              listenable: widget.controller,
-              builder: (context, _) => _buildLists(context),
-            ),
-          ),
+          ],
         ),
       ),
     );
@@ -80,7 +70,7 @@ class _BoardPageState extends State<BoardPage> {
         child: SingleChildScrollView(
           controller: _horizontal,
           scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 20),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -142,20 +132,117 @@ class _AddListColumn extends StatelessWidget {
   }
 
   Widget _buildBody(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Container(
       width: width,
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Theme.of(
-          context,
-        ).colorScheme.surfaceContainerHigh.withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(12),
+        color: colors.surfaceContainer.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: 0.6)),
       ),
       child: InlineComposer(
         buttonLabel: 'Adicionar outra lista',
         hintText: 'Nome da lista…',
         submitLabel: 'Adicionar lista',
         onSubmit: onSubmit,
+      ),
+    );
+  }
+}
+
+/// Title in the accent gradient with a live summary of the board.
+class _Header extends StatelessWidget {
+  const _Header({required this.controller});
+
+  final BoardController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final lists = controller.board.lists;
+    final cards = lists.fold(0, (sum, list) => sum + list.cards.length);
+    String plural(int n, String one, String many) =>
+        n == 1 ? '1 $one' : '$n $many';
+    final summary =
+        '${plural(lists.length, 'lista', 'listas')} · '
+        '${plural(cards, 'tarefa', 'tarefas')}';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GradientText(
+            'Minhas Tarefas',
+            style: theme.textTheme.headlineMedium?.withWeight(FontWeight.w500),
+          ),
+          const SizedBox(height: 2),
+          AnimatedSwitcher(
+            duration: Motion.medium,
+            switchInCurve: Motion.emphasized,
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween(
+                  begin: const Offset(0, 0.3),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              ),
+            ),
+            layoutBuilder: (current, previous) => Stack(
+              alignment: Alignment.centerLeft,
+              children: [...previous, ?current],
+            ),
+            child: Text(
+              summary,
+              key: ValueKey(summary),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Soft glow of the accent colors behind the board.
+class _Aura extends StatelessWidget {
+  const _Aura();
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    Widget glow(Alignment center, Color color, double alpha) => DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: RadialGradient(
+          center: center,
+          radius: 1.1,
+          colors: [
+            color.withValues(alpha: alpha),
+            color.withValues(alpha: 0),
+          ],
+        ),
+      ),
+    );
+    return IgnorePointer(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          glow(
+            const Alignment(-1, -1.2),
+            AppTheme.gradientColors[0],
+            dark ? 0.16 : 0.10,
+          ),
+          glow(
+            const Alignment(1, -1.2),
+            AppTheme.gradientColors[2],
+            dark ? 0.12 : 0.08,
+          ),
+        ],
       ),
     );
   }

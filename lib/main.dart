@@ -1,7 +1,9 @@
 import 'dart:io';
 
 import 'package:dbus/dbus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'src/app.dart';
@@ -15,6 +17,7 @@ import 'src/desktop/single_instance.dart';
 /// does so on login.
 Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+  LicenseRegistry.addLicense(_fontLicenses);
 
   final dbus = DBusClient.session();
   DesktopShell? shell;
@@ -53,6 +56,11 @@ Future<void> main(List<String> args) async {
       onQuit: shell.quit,
     ),
   );
+}
+
+Stream<LicenseEntry> _fontLicenses() async* {
+  final ofl = await rootBundle.loadString('assets/fonts/google_sans/OFL.txt');
+  yield LicenseEntryWithLineBreaks(['Google Sans'], ofl);
 }
 
 Future<bool> _claimSingleInstance(

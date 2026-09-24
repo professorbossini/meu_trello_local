@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'board/board_controller.dart';
 import 'ui/board_page.dart';
 import 'ui/drag_and_drop.dart';
+import 'ui/theme.dart';
 
 class MinhasTarefasApp extends StatefulWidget {
   const MinhasTarefasApp({
@@ -26,8 +27,6 @@ class MinhasTarefasApp extends StatefulWidget {
 }
 
 class _MinhasTarefasAppState extends State<MinhasTarefasApp> {
-  static const _seed = Color(0xFFE8456A);
-
   final _dragActivity = BoardDragActivity();
 
   @override
@@ -42,8 +41,8 @@ class _MinhasTarefasAppState extends State<MinhasTarefasApp> {
       title: 'Minhas Tarefas',
       debugShowCheckedModeBanner: false,
       themeMode: ThemeMode.system,
-      theme: ThemeData(colorSchemeSeed: _seed),
-      darkTheme: ThemeData(colorSchemeSeed: _seed, brightness: Brightness.dark),
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
       // Above the navigator so drag feedback painted in its overlay can
       // reach the scope too.
       builder: (context, child) => CallbackShortcuts(
