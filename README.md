@@ -30,7 +30,10 @@ Everything stays on your machine, in a single JSON file.
   This is on by default and can be turned off with *Iniciar com o sistema*
   in the tray menu; the choice is remembered.
 - **Responsive**: columns and dialogs adapt down to narrow windows.
-- Follows the system light/dark theme.
+- **Undo**: deleting a card or a list shows a snack bar with *Desfazer*.
+- **Look and feel**: Material 3 with Google Sans, the neutral surfaces and
+  blue-violet-rose accent gradient of Google's AI products, emphasized
+  motion and hover/drag feedback. Follows the system light/dark theme.
 
 ### Keyboard shortcuts
 
@@ -130,6 +133,13 @@ generated from it:
 ```sh
 dart run tool/generate_icons.dart
 ```
+
+## Credits
+
+The app bundles [Google Sans](https://github.com/googlefonts/googlesans),
+licensed under the SIL Open Font License 1.1
+(`assets/fonts/google_sans/OFL.txt`). "Google Sans" is a trademark of
+Google LLC; this project is not affiliated with Google.
 
 ## Development
 
